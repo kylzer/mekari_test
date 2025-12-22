@@ -1,0 +1,49 @@
+services:
+  weaviate:
+    command:
+    - --host
+    - 0.0.0.0
+    - --port
+    - '8080'
+    - --scheme
+    - http
+    image: cr.weaviate.io/semitechnologies/weaviate:1.35.0
+    ports:
+    - 8080:8080
+    - 50051:50051
+    volumes:
+    - weaviate_data:/var/lib/weaviate
+    restart: on-failure:0
+    environment:
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
+      PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
+      ENABLE_MODULES: 'text2vec-ollama,generative-ollama'
+      CLUSTER_HOSTNAME: 'node1'
+      USE_GOOGLE_AUTH: true
+
+  embedding-api:
+    build:
+      context: ./embedding
+      dockerfile: Dockerfile
+    container_name: embedding_service
+    ports:
+      - "9094:8080"
+    command: uvicorn main:app --host 0.0.0.0 --port 8080
+
+  gradio:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mekari_test
+    command: python main.py
+    ports:
+      - "7860:7860"
+    environment:
+      - GRADIO_SERVER_NAME=0.0.0.0
+      - GRADIO_SERVER_PORT=7860
+    depends_on:
+      - embedding-api
+      - weaviate
+
+volumes:
+  weaviate_data:
