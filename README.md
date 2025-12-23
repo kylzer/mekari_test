@@ -112,10 +112,9 @@ Weaviate Logs
 ![CSV to SQL Input](assets/photos/CSV%20to%20SQL%20Input.png)
 
 ### Result
-![CSV to SQL Combining](assets/photos/CSV%20to%20SQL%20Combining.png)
-![CSV to SQL Concatted CSV](assets/photos/CSV%20to%20SQL%20Concatted%20CSV.png)
 ![CSV to SQL Stored](assets/photos/CSV%20to%20SQL%20Stored.png)
 ![CSV to SQL Stored 2](assets/photos/CSV%20to%20SQL%20Stored%202.png)
+![CSV to SQL Concatted CSV](assets/photos/CSV%20to%20SQL%20Concatted%20CSV.png)
 
 ## Retrieval
 ### Main
@@ -125,7 +124,8 @@ Weaviate Logs
 ![Retrieval Loading](assets/photos/Retrieval%20Loading.png)
 
 ### Result
-![Retrieval Result](assets/photos/Retrieval%20Result.png)
+![Retrieval Result 1](assets/photos/Retrieval%20Result%201.png)
+![Retrieval Result 2](assets/photos/Retrieval%20Result%202.png)
 
 
 # Video
