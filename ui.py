@@ -218,6 +218,12 @@ def retrieval_ui(orchestrator):
                 """
             with gr.Blocks(css=css):
                 with gr.Column():
+                    retrieval_status = gr.Textbox(
+                        label="Status",
+                        value="",
+                        interactive=False,
+                        visible=False
+                    )
                     retrieval_output = gr.Markdown(label="Retrieval Results")
 
     def refresh_collection_dropdown():
@@ -245,7 +251,6 @@ def retrieval_ui(orchestrator):
         
         return gr.Dropdown(choices=[], value=None), {}
     
-    # Refresh button to manually update collections
     refresh_btn.click(
         fn=refresh_collection_dropdown,
         inputs=None,
@@ -268,8 +273,17 @@ def retrieval_ui(orchestrator):
         print(f"DEBUG: Retrieving query='{query}', collection='{collection_name}', doc_id='{doc_id}'")
         return orchestrator.retrieve_document(query, collection_name, doc_id)
 
+
     retrieve_btn.click(
+        fn=lambda: (gr.update(value="🔄 Searching documents...", visible=True), ""),
+        inputs=None,
+        outputs=[retrieval_status, retrieval_output]
+    ).then(
         fn=retrieve_with_doc_id,
         inputs=[query_input, collection_selector, file_selector, doc_id_state],
         outputs=[retrieval_output]
+    ).then(
+        fn=lambda: gr.update(visible=False),
+        inputs=None,
+        outputs=[retrieval_status]
     )
