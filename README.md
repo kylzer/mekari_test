@@ -8,6 +8,7 @@ An Fraud Knowledge Agent
 - Docker
 - Docker Compose
 - Python 3.10
+- Ollama
 
 **NOTES** : .env is not ignored for test purpose
 # Specification
@@ -18,7 +19,10 @@ That's the reason I don't use GPU on Docker Compose for Ollama.
 # Model
 - nomic-embed-text-v1.5 for Embedding (use sentence-transformers/all-MiniLM-L6-v2 for Low-end PC)
 - GPT-OSS 20B for Generative (with Ollama)
+- SmolDocling-MLX for VLM (Parsing PDF to MD "txt")
 
+**NOTES** : Feel free to change the VLM Model (this model only works for Apple Silicon chips)
+**NOTES** : I don't provide Ollama in Docker Compose in purpose (can't do Embedding and LLM at the same device)
 # Tool List
 - fraud_knowledge
 
