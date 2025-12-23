@@ -23,4 +23,6 @@ stop: ## Stop everything
 clean: ## Clean everything
 	@docker-compose down -v
 	@rm -rf $(VENV)
+	@rm -rf database/vectorRepo.db
+	@rm -rf database/data.db
 	@echo "Cleaned"
