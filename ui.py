@@ -1,8 +1,6 @@
 import gradio as gr
 
 def sql_ui(orchestrator):
-    """Create the CSV to SQL tab UI with exact workflow"""
-    
     with gr.Tab("📊 CSV to SQL"):
         gr.Markdown("### Store CSV Data in SQL Database")
         gr.Markdown("Upload CSV files and store them in a SQLite database.")
@@ -135,50 +133,50 @@ def indexing_ui(orchestrator):
                     interactive=False
                 )
     
-    chunked_text = gr.State()
-    collection_name = gr.State()
+        chunked_text = gr.State()
+        collection_name = gr.State()
 
-    def determine_collection(collection_dropdown, new_collection_name):
-        return new_collection_name if collection_dropdown == "+ Create New Collection" else collection_dropdown
-    
-    def refresh_collections():
-        collections = orchestrator.get_collections_from_db()
-        print(f"refresh_collections: {collections}")
-        # Return dropdown update with new choices
-        return gr.Dropdown(choices=collections, value="+ Create New Collection")
+        def determine_collection(collection_dropdown, new_collection_name):
+            return new_collection_name if collection_dropdown == "+ Create New Collection" else collection_dropdown
+        
+        def refresh_collections():
+            collections = orchestrator.get_collections_from_db()
+            print(f"refresh_collections: {collections}")
+            # Return dropdown update with new choices
+            return gr.Dropdown(choices=collections, value="+ Create New Collection")
 
-    def toggle_new_table_input(selected):
-        if selected == "+ Create New Collection":
-            return gr.update(visible=True)
-        return gr.update(visible=False)
-    
-    collection_list.change(
-        fn=toggle_new_table_input,
-        inputs=[collection_list],
-        outputs=[new_collection_input]
-    )
+        def toggle_new_table_input(selected):
+            if selected == "+ Create New Collection":
+                return gr.update(visible=True)
+            return gr.update(visible=False)
+        
+        collection_list.change(
+            fn=toggle_new_table_input,
+            inputs=[collection_list],
+            outputs=[new_collection_input]
+        )
 
-    index_btn.click(
-        fn=orchestrator.process_pdf,
-        inputs=[file_input],
-        outputs=[index_output, index_preview]
-    ).then(
-        fn=orchestrator.chunking_text,
-        inputs=[file_input], 
-        outputs=[index_output, chunked_text]
-    ).then(
-        fn=determine_collection,
-        inputs=[collection_list, new_collection_input],
-        outputs=[collection_name]
-    ).then(
-        fn=orchestrator.upserting_docs,
-        inputs=[index_output, file_input, chunked_text, collection_name],
-        outputs=[index_output]
-    ).then(
-        fn=refresh_collections,
-        inputs=None,
-        outputs=[collection_list]
-    )
+        index_btn.click(
+            fn=orchestrator.process_pdf,
+            inputs=[file_input],
+            outputs=[index_output, index_preview]
+        ).then(
+            fn=orchestrator.chunking_text,
+            inputs=[file_input], 
+            outputs=[index_output, chunked_text]
+        ).then(
+            fn=determine_collection,
+            inputs=[collection_list, new_collection_input],
+            outputs=[collection_name]
+        ).then(
+            fn=orchestrator.upserting_docs,
+            inputs=[index_output, file_input, chunked_text, collection_name],
+            outputs=[index_output]
+        ).then(
+            fn=refresh_collections,
+            inputs=None,
+            outputs=[collection_list]
+        )
 
 def retrieval_ui(orchestrator):
     with gr.Tab("🔍 Retrieval"):
@@ -226,64 +224,64 @@ def retrieval_ui(orchestrator):
                     )
                     retrieval_output = gr.Markdown(label="Retrieval Results")
 
-    def refresh_collection_dropdown():
-        collections = orchestrator.get_collections_from_db()
-        print(f"refresh_collection_dropdown: {collections}")
-        return gr.Dropdown(choices=collections)
+        def refresh_collection_dropdown():
+            collections = orchestrator.get_collections_from_db()
+            print(f"refresh_collection_dropdown: {collections}")
+            return gr.Dropdown(choices=collections)
 
-    def update_file_choices(collection_name):
-        print(f"DEBUG update_file_choices: collection_name={collection_name}")
-        if collection_name and collection_name != "+ Create New Collection":
-            documents = orchestrator.get_documents_by_collection(collection_name)
-            print(f"DEBUG documents: {documents}")
+        def update_file_choices(collection_name):
+            print(f"DEBUG update_file_choices: collection_name={collection_name}")
+            if collection_name and collection_name != "+ Create New Collection":
+                documents = orchestrator.get_documents_by_collection(collection_name)
+                print(f"DEBUG documents: {documents}")
+                
+                doc_mapping = {}
+                choices = []
+                
+                for doc_id, filename in documents:
+                    display_text = f"{filename} - {{{doc_id}}}"
+                    choices.append(display_text)
+                    doc_mapping[display_text] = doc_id
+                
+                print(f"DEBUG choices: {choices}")
+                print(f"DEBUG doc_mapping: {doc_mapping}")
+                return gr.Dropdown(choices=choices, value=None), doc_mapping
             
-            doc_mapping = {}
-            choices = []
+            return gr.Dropdown(choices=[], value=None), {}
+        
+        refresh_btn.click(
+            fn=refresh_collection_dropdown,
+            inputs=None,
+            outputs=[collection_selector]
+        )
+        
+        collection_selector.change(
+            fn=update_file_choices,
+            inputs=[collection_selector],
+            outputs=[file_selector, doc_id_state]
+        )
+
+        def retrieve_with_doc_id(query, collection_name, document_selector, doc_mapping):
+            doc_id = None
+            print(f"DEBUG retrieve: document_selector={document_selector}, doc_mapping={doc_mapping}")
             
-            for doc_id, filename in documents:
-                display_text = f"{filename} - {{{doc_id}}}"
-                choices.append(display_text)
-                doc_mapping[display_text] = doc_id
+            if document_selector and document_selector in doc_mapping:
+                doc_id = doc_mapping[document_selector]
             
-            print(f"DEBUG choices: {choices}")
-            print(f"DEBUG doc_mapping: {doc_mapping}")
-            return gr.Dropdown(choices=choices, value=None), doc_mapping
-        
-        return gr.Dropdown(choices=[], value=None), {}
-    
-    refresh_btn.click(
-        fn=refresh_collection_dropdown,
-        inputs=None,
-        outputs=[collection_selector]
-    )
-    
-    collection_selector.change(
-        fn=update_file_choices,
-        inputs=[collection_selector],
-        outputs=[file_selector, doc_id_state]
-    )
-
-    def retrieve_with_doc_id(query, collection_name, document_selector, doc_mapping):
-        doc_id = None
-        print(f"DEBUG retrieve: document_selector={document_selector}, doc_mapping={doc_mapping}")
-        
-        if document_selector and document_selector in doc_mapping:
-            doc_id = doc_mapping[document_selector]
-        
-        print(f"DEBUG: Retrieving query='{query}', collection='{collection_name}', doc_id='{doc_id}'")
-        return orchestrator.retrieve_document(query, collection_name, doc_id)
+            print(f"DEBUG: Retrieving query='{query}', collection='{collection_name}', doc_id='{doc_id}'")
+            return orchestrator.retrieve_document(query, collection_name, doc_id)
 
 
-    retrieve_btn.click(
-        fn=lambda: (gr.update(value="🔄 Searching documents...", visible=True), ""),
-        inputs=None,
-        outputs=[retrieval_status, retrieval_output]
-    ).then(
-        fn=retrieve_with_doc_id,
-        inputs=[query_input, collection_selector, file_selector, doc_id_state],
-        outputs=[retrieval_output]
-    ).then(
-        fn=lambda: gr.update(visible=False),
-        inputs=None,
-        outputs=[retrieval_status]
-    )
+        retrieve_btn.click(
+            fn=lambda: (gr.update(value="🔄 Searching documents...", visible=True), ""),
+            inputs=None,
+            outputs=[retrieval_status, retrieval_output]
+        ).then(
+            fn=retrieve_with_doc_id,
+            inputs=[query_input, collection_selector, file_selector, doc_id_state],
+            outputs=[retrieval_output]
+        ).then(
+            fn=lambda: gr.update(visible=False),
+            inputs=None,
+            outputs=[retrieval_status]
+        )
