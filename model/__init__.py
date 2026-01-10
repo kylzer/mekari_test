@@ -1,1 +1,3 @@
-from .model import TabularStoringResponse, VectorInput, VectorMetadata, Summary, Keywords
+from .model import (TabularStoringResponse, VectorInput, 
+                    VectorMetadata, FraudDocument,Summary, Keywords,
+                    DatabaseSchema)

@@ -6,6 +6,16 @@ class CSVToSQL:
     def __init__(self, db_path):
         self.db_path = db_path  
     
+    def get_connection(self):
+        """Connect to SQLite DB"""
+        conn = None
+        try:
+            conn = sqlite3.connect(self.db_path)
+        except Exception as e:
+            print(f"Error connecting to database: {str(e)}")
+        finally:
+            return conn
+
     def create_db(self):
         """Create SQLite DB"""
         try:
@@ -13,7 +23,7 @@ class CSVToSQL:
             conn.close()
             return True
         except Exception as e:
-            print(f"Error creating database: {e}")
+            print(f"Error creating database: {str(e)}")
             return False
     
     def get_db_tables(self):
@@ -45,7 +55,7 @@ class CSVToSQL:
             conn.close()
             return columns
         except Exception as e:
-            print(f"Error getting columns: {e}")
+            print(f"Error getting columns: {str(e)}")
             return []
     
     def create_table_from_csv(self, csv_path, table_name):
@@ -142,5 +152,5 @@ class CSVToSQL:
             return summary, df
 
         except Exception as e:
-            return f"Error: {e}", None
+            return f"Error: {str(e)}", None
 

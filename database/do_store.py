@@ -1,8 +1,11 @@
 from database.to_sql import CSVToSQL
-from model import TabularStoringResponse
+from model import TabularStoringResponse, DatabaseSchema
 
 import os
+import json
 import gradio as gr
+
+from utils import langchainInvoke
 
 class TabularOrchestrator:
     def __init__(self, db_folder, db_name):
@@ -67,3 +70,74 @@ class TabularOrchestrator:
         """Refresh showing data"""
         summary, preview = self.sql_handler.get_table_preview(table, preview_limit)
         return summary, preview
+    
+    def extract_schema(self):
+        conn = self.sql_handler.get_connection()
+        database_name = self.db_name
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT name
+            FROM sqlite_master
+            WHERE type='table'
+            AND name NOT LIKE 'sqlite_%';
+        """)
+        tables = [row[0] for row in cursor.fetchall()]
+
+        table_list = {}
+        for table in tables:
+            cursor.execute(f"PRAGMA table_info({table});")
+            columns = [row[1] for row in cursor.fetchall()]
+            table_list[table] = {col: "Description Placeholder" for col in columns}
+        
+        conn.close()
+        
+        schema = {
+            "database_name": database_name,
+            "table_list": table_list
+        }
+
+        restructured_status = self.generate_description(schema)
+        
+        return restructured_status
+    
+    def generate_description(self, schema):
+        try:
+            db_name = schema['database_name']
+            table_list = schema['table_list']
+
+            DESCRIPTION_SYSTEM_PROMPT = """
+                Given this database schema, provide clear, concise descriptions for each table and column.
+                The descriptions should help with text-to-SQL generation.
+
+                Return ONLY a valid JSON object in this exact format (no markdown, no explanation):
+                {{
+                    database_name: name of the database,
+                    database_desc: description of the database,
+                    table_list: {{
+                        table_name: {{
+                            table_desc: description of the table
+                            columns: {{
+                                column_name: description of the column
+                            }}
+                        }}
+                    }}
+                }}
+            """
+            DESCRIPTION_USER_PROMPT = """
+                Please generate a description for each column based on this information.
+
+                Database Name : {db_name}
+                Table & Column List
+                <table>
+                {table_list}
+                </table>
+            """
+
+            restructured_schema = langchainInvoke(DESCRIPTION_SYSTEM_PROMPT, DESCRIPTION_USER_PROMPT, {'db_name':db_name, 'table_list':table_list}, DatabaseSchema)
+            with open(f"{self.db_folder}/db_schema.json", "w", encoding="utf-8") as f:
+                json.dump(restructured_schema, f, indent=2)
+            return True
+        except Exception as e:
+            print(f"Error while generate description for Schema with error: {str(e)}")
+            return False

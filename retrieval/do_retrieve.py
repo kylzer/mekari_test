@@ -3,7 +3,7 @@ from langchain_core.messages import HumanMessage
 
 from utils import langchainModel
 from retrieval.prompt import SYSTEM_PROMPT
-from retrieval.tools import fraud_knowledge
+from retrieval.tools import fraud_knowledge, database_information, fraud_database
 
 from rich.console import Console
 console = Console()
@@ -16,7 +16,7 @@ class Agent:
         self.document_id = doc_id
 
     def agent_initiate(self):
-        tools = [fraud_knowledge]
+        tools = [fraud_knowledge, database_information, fraud_database]
         agent = create_agent(
             model=self.model,
             tools=tools,

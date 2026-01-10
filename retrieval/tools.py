@@ -1,72 +1,86 @@
 import sqlite3
+import json
 
-from pydantic import BaseModel, Field
 from langchain.tools import tool
 
 from database import Weaviate
+from model import FraudDocument
 
 from weaviate import classes
-from weaviate.classes.query import Filter, MetadataQuery
+from weaviate.classes.query import MetadataQuery
 
 from rich.console import Console
 console = Console()
 
+@tool
+def database_information():
+    """
+    Before generate a query for SQLite.
+    You need to get information by this function.
+    
+    This function included the Schema, Description, and Record Sample.
+    This will help to generate a query more accurate.
+    """
+    schema = ""
+    record = {}
+    try:
+        with open("database/db_schema.json", "r") as f:
+            schema = json.load(f)
 
-# def extract_schema(db_path: str):
-#     conn = sqlite3.connect(db_path)
-#     cursor = conn.cursor()
+        conn = sqlite3.connect("database/data.db")
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT name
+            FROM sqlite_master
+            WHERE type='table'
+            AND name NOT LIKE 'sqlite_%';
+        """)
+        tables = [row[0] for row in cursor.fetchall()]    
+        for table_name in tables:
+            cursor.execute(f"SELECT * FROM {table_name} LIMIT 5")
+            rows = cursor.fetchall()        
+            record[table_name] = [dict(row) for row in rows]
+        
+        conn.close()
 
-#     cursor.execute("""
-#         SELECT name
-#         FROM sqlite_master
-#         WHERE type='table'
-#         AND name NOT LIKE 'sqlite_%';
-#     """)
-#     tables = [row[0] for row in cursor.fetchall()]
+        messages = f"""
+            Database Schema :
+            {schema}
 
-#     schema = {}
+            Record Examples :
+            {record}
+        """
+        return messages
+    except Exception as e:
+        return f"There's an error while gaining information with error: {str(e)}"
 
-#     for table in tables:
-#         cursor.execute(f"PRAGMA table_info({table});")
-#         columns = cursor.fetchall()
+@tool
+def fraud_database(query: str):
+    """
+    Execute a SQL query against the SQLite database. 
+    Use database_information first to see available tables.
 
-#         cursor.execute(f"PRAGMA foreign_key_list({table});")
-#         fks = cursor.fetchall()
+    Args :
+        query        : SQLite query
+    """
+    try:
+        danger_keywords = ["DROP", "DELETE", "INSERT", "UPDATE", "ALTER", "TRUNCATE"]
+        if any(word in query.upper() for word in danger_keywords):
+            return "Generated Query contain malicious command or keyword!"
 
-#         schema[table] = {
-#             "columns": [
-#                 {
-#                     "name": col[1],
-#                     "type": col[2],
-#                     "pk": bool(col[5])
-#                 }
-#                 for col in columns
-#             ],
-#             "foreign_keys": [
-#                 {
-#                     "from": fk[3],
-#                     "to_table": fk[2],
-#                     "to_column": fk[4]
-#                 }
-#                 for fk in fks
-#             ]
-#         }
+        conn = sqlite3.connect("database/data.db")
+        cursor = conn.cursor()
+        cursor.execute(query)
+        rows = cursor.fetchall()
+        column_names = [description[0] for description in cursor.description]
+        results = [dict(zip(column_names, row)) for row in rows]
+        conn.close()
+        return results
+    except Exception as e:
+        return f"Error while using fraud_database tool: {str(e)}"
 
-#     conn.close()
-#     return schema
-
-# @tool
-# def database_information():
-
-# @tool
-# def fraud_database():
-#     pass
-
-
-class FraudDocument(BaseModel):
-    question: str = Field(..., description="User Question to retrieve very similar chunk to answer this question")
-    collection_name: str = Field(..., description="Needs to filter which collection where's the document stored")
-    document_id: str = Field(..., description="Unique ID for a Document to Retrieve as a Knowledge")
 
 @tool(args_schema=FraudDocument)
 def fraud_knowledge(question: str = None, collection_name: str = None, document_id: str = None):
