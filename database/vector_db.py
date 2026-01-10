@@ -92,7 +92,7 @@ class WeaviateRepository:
                         raise insert_error
         except Exception as e:
             _, _, exc_tb = sys.exc_info()
-            message = f"error {e} at {exc_tb.tb_lineno}, vector store upsert failed"
+            message = f"error {str(e)} at {exc_tb.tb_lineno}, vector store upsert failed"
             print(message)
         finally:
             self.client.close()
@@ -105,5 +105,5 @@ class WeaviateRepository:
             self._store_vector()
         except Exception as e:
             _, _, exc_tb = sys.exc_info()
-            message = f"error {e} at {exc_tb.tb_lineno}, upsert failed"
+            message = f"error {str(e)} at {exc_tb.tb_lineno}, upsert failed"
             print(message)

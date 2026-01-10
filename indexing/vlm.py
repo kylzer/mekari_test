@@ -40,5 +40,5 @@ class pdfConversion:
                 f.write(result.export_to_text())
             return True
         except Exception as e:
-            console.log(f"Error while converting {self.raw_filename} document with error : {e}")
+            console.log(f"Error while converting {self.raw_filename} document with error : {str(e)}")
             return False
